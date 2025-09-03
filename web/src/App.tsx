@@ -215,7 +215,7 @@ function App() {
             </h3>
             <div className="text-center">
               <img 
-                src="/rateOfClimbPOHSource.png" 
+                src={`${import.meta.env.BASE_URL}rateOfClimbPOHSource.png`}
                 alt="1964 Cessna 172E Rate of Climb Data from Pilot's Operating Handbook" 
                 className="mx-auto max-w-full h-auto rounded-lg shadow-md border"
               />
