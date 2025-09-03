@@ -24,7 +24,11 @@ export interface ClimbSegment {
   end_ias_mph: number;
   start_density_alt_ft: number;
   end_density_alt_ft: number;
-  temperature_c: number;
+  start_temperature_c: number;
+  end_temperature_c: number;
+  actual_lapse_rate: number;
+  standard_lapse_rate: number;
+  is_standard_atmosphere: boolean;
 }
 
 export interface DataBounds {

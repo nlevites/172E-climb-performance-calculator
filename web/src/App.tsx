@@ -11,7 +11,10 @@ function App() {
   const [startAltitude, setStartAltitude] = useState<number>(2000);
   const [endAltitude, setEndAltitude] = useState<number>(8000);
   const [weight, setWeight] = useState<number>(2000);
-  const [temperature, setTemperature] = useState<number>(15);
+  const [startTemperature, setStartTemperature] = useState<number>(15);
+  const [endTemperature, setEndTemperature] = useState<number>(3); // Standard lapse rate: 15 - (2 * 6000/1000) = 3°C
+  const [useStandardLapseRate, setUseStandardLapseRate] = useState<boolean>(true);
+  const [temperatureUnit, setTemperatureUnit] = useState<'C' | 'F'>('C');
   
   // Results state
   const [climbSegment, setClimbSegment] = useState<ClimbSegment | null>(null);
@@ -23,6 +26,49 @@ function App() {
   // Aircraft performance calculator instance
   const calc = new AircraftPerformance();
 
+  // Temperature conversion utilities
+  const fahrenheitToCelsius = (fahrenheit: number) => (fahrenheit - 32) * 5/9;
+  
+  // Helper function to calculate standard temperature at target altitude (always in Celsius)
+  const calculateStandardEndTemp = (startTemp: number, startAlt: number, endAlt: number) => {
+    return startTemp - (2.0 * (endAlt - startAlt) / 1000);
+  };
+
+  // Update end temperature when altitudes change (maintaining standard lapse rate as starting point)
+  const handleStartAltitudeChange = (newStartAltitude: number) => {
+    setStartAltitude(newStartAltitude);
+    const newEndTemp = calculateStandardEndTemp(startTemperature, newStartAltitude, endAltitude);
+    setEndTemperature(Math.round(newEndTemp * 10) / 10);
+  };
+
+  const handleEndAltitudeChange = (newEndAltitude: number) => {
+    setEndAltitude(newEndAltitude);
+    const newEndTemp = calculateStandardEndTemp(startTemperature, startAltitude, newEndAltitude);
+    setEndTemperature(Math.round(newEndTemp * 10) / 10);
+  };
+
+  const handleStartTemperatureChange = (newStartTemp: number) => {
+    // Convert to Celsius if input is in Fahrenheit, but store in Celsius
+    const tempInCelsius = temperatureUnit === 'F' ? fahrenheitToCelsius(newStartTemp) : newStartTemp;
+    setStartTemperature(tempInCelsius);
+    const newEndTemp = calculateStandardEndTemp(tempInCelsius, startAltitude, endAltitude);
+    setEndTemperature(Math.round(newEndTemp * 10) / 10);
+  };
+
+  const handleEndTemperatureChange = (newEndTemp: number) => {
+    // Convert to Celsius if input is in Fahrenheit, but store in Celsius
+    const tempInCelsius = temperatureUnit === 'F' ? fahrenheitToCelsius(newEndTemp) : newEndTemp;
+    setEndTemperature(tempInCelsius);
+  };
+
+  const handleTemperatureUnitChange = (newUnit: 'C' | 'F') => {
+    if (newUnit !== temperatureUnit) {
+      // Don't convert the stored values - they stay in Celsius internally
+      // The display will handle the conversion
+      setTemperatureUnit(newUnit);
+    }
+  };
+
   const handleCalculate = useCallback(async () => {
     setIsCalculating(true);
     setError(null);
@@ -31,26 +77,31 @@ function App() {
       // Add small delay for better UX
       await new Promise(resolve => setTimeout(resolve, 200));
       
-      // Get climb segment performance
-      const segment = calc.getClimbSegmentPerformance(startAltitude, endAltitude, weight, temperature);
+      // Get climb segment performance - use standard lapse rate if enabled
+      const effectiveEndTemp = useStandardLapseRate 
+        ? startTemperature - (2.0 * (endAltitude - startAltitude) / 1000)
+        : endTemperature;
+      const segment = calc.getClimbSegmentPerformance(startAltitude, endAltitude, weight, startTemperature, effectiveEndTemp);
       
       if (!segment) {
         const bounds = calc.getDataBounds();
         let errorMsg = 'Unable to calculate climb performance. ';
         
-        // Check density altitude at both ends
-        const endTemp = temperature - (2.0 * (endAltitude - startAltitude) / 1000);
-        const startDA = calc.calculateDensityAltitude(startAltitude, temperature);
-        const endDA = calc.calculateDensityAltitude(endAltitude, endTemp);
+        // Check density altitude at both ends using effective temperatures
+        const effectiveEndTemp = useStandardLapseRate 
+          ? startTemperature - (2.0 * (endAltitude - startAltitude) / 1000)
+          : endTemperature;
+        const startDA = calc.calculateDensityAltitude(startAltitude, startTemperature);
+        const endDA = calc.calculateDensityAltitude(endAltitude, effectiveEndTemp);
         
         if (startAltitude >= endAltitude) {
           errorMsg += 'Target altitude must be higher than start altitude.';
         } else if (weight < bounds.weight_range_lbs[0] || weight > bounds.weight_range_lbs[1]) {
           errorMsg += `Weight must be between ${bounds.weight_range_lbs[0]} and ${bounds.weight_range_lbs[1]} lbs.`;
         } else if (startDA < bounds.altitude_range_ft[0] || endDA < bounds.altitude_range_ft[0]) {
-          errorMsg += `Cold temperature (${temperature}°C) creates negative density altitude. Try warmer temperature (≥10°C).`;
+          errorMsg += `Cold temperatures (${startTemperature}°C/${effectiveEndTemp.toFixed(1)}°C) create negative density altitude. Try warmer temperatures.`;
         } else if (startDA > bounds.altitude_range_ft[1] || endDA > bounds.altitude_range_ft[1]) {
-          errorMsg += `Hot temperature (${temperature}°C) creates density altitude above ${bounds.altitude_range_ft[1]} ft. Try cooler temperature.`;
+          errorMsg += `Hot temperatures (${startTemperature}°C/${effectiveEndTemp.toFixed(1)}°C) create density altitude above ${bounds.altitude_range_ft[1]} ft. Try cooler temperatures.`;
         } else {
           errorMsg += 'Check that all parameters are within valid ranges.';
         }
@@ -62,10 +113,9 @@ function App() {
         return;
       }
       
-      // Get detailed performance at start and end altitudes
-      const startPerf = calc.getPerformanceWithTemperature(startAltitude, weight, temperature);
-      const endTemp = temperature - (2.0 * (endAltitude - startAltitude) / 1000);
-      const endPerf = calc.getPerformanceWithTemperature(endAltitude, weight, endTemp);
+      // Get detailed performance at start and end altitudes with effective temperatures
+      const startPerf = calc.getPerformanceWithTemperature(startAltitude, weight, startTemperature);
+      const endPerf = calc.getPerformanceWithTemperature(endAltitude, weight, effectiveEndTemp);
       
       setClimbSegment(segment);
       setStartPerformance(startPerf);
@@ -79,7 +129,7 @@ function App() {
     } finally {
       setIsCalculating(false);
     }
-  }, [startAltitude, endAltitude, weight, temperature, calc]);
+  }, [startAltitude, endAltitude, weight, startTemperature, endTemperature, useStandardLapseRate, calc]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-aviation-50 to-blue-50">
@@ -132,11 +182,17 @@ function App() {
             startAltitude={startAltitude}
             endAltitude={endAltitude}
             weight={weight}
-            temperature={temperature}
-            onStartAltitudeChange={setStartAltitude}
-            onEndAltitudeChange={setEndAltitude}
+            startTemperature={startTemperature}
+            endTemperature={endTemperature}
+            useStandardLapseRate={useStandardLapseRate}
+            temperatureUnit={temperatureUnit}
+            onStartAltitudeChange={handleStartAltitudeChange}
+            onEndAltitudeChange={handleEndAltitudeChange}
             onWeightChange={setWeight}
-            onTemperatureChange={setTemperature}
+            onStartTemperatureChange={handleStartTemperatureChange}
+            onEndTemperatureChange={handleEndTemperatureChange}
+            onUseStandardLapseRateChange={setUseStandardLapseRate}
+            onTemperatureUnitChange={handleTemperatureUnitChange}
             onCalculate={handleCalculate}
             isCalculating={isCalculating}
           />
@@ -148,12 +204,13 @@ function App() {
               startPerformance={startPerformance}
               endPerformance={endPerformance}
               error={error}
+              temperatureUnit={temperatureUnit}
             />
           )}
 
           {/* Performance Charts */}
           {climbSegment && !error && (
-            <PerformanceChart weight={weight} temperature={temperature} />
+            <PerformanceChart weight={weight} temperature={startTemperature} />
           )}
 
 
@@ -180,12 +237,11 @@ function App() {
           <div className="card bg-blue-50 border-blue-200">
             <h3 className="text-lg font-bold text-blue-900 mb-4">Technical Notes</h3>
             <div className="text-sm text-blue-800 space-y-2">
+              <p>• <strong>Important:</strong> Initial fuel used for warm-up and take-off allowance (1 gal) is not included in fuel calculations (see Fig 5-4 for clarification)</p>
               <p>• Performance data interpolated using bilinear interpolation between tabulated values</p>
               <p>• Temperature effects calculated using density altitude (120 ft per °C deviation from ISA)</p>
-              <p>• ISA conditions: 15°C at sea level, decreasing 2°C per 1000 ft</p>
+              <p>• ISA conditions: 15°C at sea level, decreasing 2°C per 1000 ft (used as default starting point)</p>
               <p>• Fuel consumption and climb time calculated using average rate of climb</p>
-              <p>• <strong>Important:</strong> Initial fuel used for warm-up and take-off allowance (1 gal) is not included in fuel calculations (see Fig 5-4 for clarification)</p>
-              <p>• Valid for normal category operations within weight and balance limits</p>
               <p>• Based on authentic 1964 Cessna 172E (N7772U) POH performance tables</p>
             </div>
           </div>

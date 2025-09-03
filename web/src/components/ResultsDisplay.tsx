@@ -16,6 +16,7 @@ interface ResultsDisplayProps {
   startPerformance: PerformanceData | null;
   endPerformance: PerformanceData | null;
   error: string | null;
+  temperatureUnit: 'C' | 'F';
 }
 
 export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
@@ -23,7 +24,14 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
   startPerformance,
   endPerformance,
   error,
+  temperatureUnit,
 }) => {
+  // Temperature conversion utility
+  const celsiusToFahrenheit = (celsius: number) => (celsius * 9/5) + 32;
+  const formatTemp = (tempC: number) => {
+    const displayTemp = temperatureUnit === 'F' ? celsiusToFahrenheit(tempC) : tempC;
+    return `${displayTemp.toFixed(1)}°${temperatureUnit}`;
+  };
   if (error) {
     return (
       <div className="card animation-fade-in">
@@ -141,11 +149,11 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
           <div className="space-y-3">
             <div className="result-row">
               <span className="result-label">Temperature:</span>
-              <span className="result-value">{startPerformance.temperature_c}°C</span>
+              <span className="result-value">{formatTemp(climbSegment.start_temperature_c)}</span>
             </div>
             <div className="result-row">
               <span className="result-label">ISA Temperature:</span>
-              <span className="result-value">{startPerformance.isa_temp_c}°C</span>
+              <span className="result-value">{formatTemp(startPerformance.isa_temp_c)}</span>
             </div>
             <div className="result-row">
               <span className="result-label">ISA Deviation:</span>
@@ -153,7 +161,7 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
                 startPerformance.isa_deviation_c > 0 ? 'text-red-600' : 
                 startPerformance.isa_deviation_c < 0 ? 'text-blue-600' : ''
               }`}>
-                {startPerformance.isa_deviation_c > 0 ? '+' : ''}{startPerformance.isa_deviation_c}°C
+                {startPerformance.isa_deviation_c > 0 ? '+' : ''}{formatTemp(startPerformance.isa_deviation_c)}
               </span>
             </div>
             <div className="result-row">
@@ -176,11 +184,11 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
           <div className="space-y-3">
             <div className="result-row">
               <span className="result-label">Temperature:</span>
-              <span className="result-value">{endPerformance.temperature_c}°C</span>
+              <span className="result-value">{formatTemp(climbSegment.end_temperature_c)}</span>
             </div>
             <div className="result-row">
               <span className="result-label">ISA Temperature:</span>
-              <span className="result-value">{endPerformance.isa_temp_c}°C</span>
+              <span className="result-value">{formatTemp(endPerformance.isa_temp_c)}</span>
             </div>
             <div className="result-row">
               <span className="result-label">ISA Deviation:</span>
@@ -188,7 +196,7 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
                 endPerformance.isa_deviation_c > 0 ? 'text-red-600' : 
                 endPerformance.isa_deviation_c < 0 ? 'text-blue-600' : ''
               }`}>
-                {endPerformance.isa_deviation_c > 0 ? '+' : ''}{endPerformance.isa_deviation_c}°C
+                {endPerformance.isa_deviation_c > 0 ? '+' : ''}{formatTemp(endPerformance.isa_deviation_c)}
               </span>
             </div>
             <div className="result-row">
@@ -202,6 +210,49 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Atmospheric Analysis */}
+      {!climbSegment.is_standard_atmosphere && (
+        <div className="card">
+          <div className="flex items-center mb-4">
+            <Thermometer className="h-5 w-5 text-blue-500 mr-2" />
+            <h4 className="font-bold text-gray-900">Atmospheric Analysis</h4>
+          </div>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <p className="text-blue-800 text-sm">
+                  <strong>Actual Lapse Rate:</strong> {climbSegment.actual_lapse_rate}°C/1000 ft
+                </p>
+                <p className="text-blue-800 text-sm">
+                  <strong>Standard Lapse Rate:</strong> {climbSegment.standard_lapse_rate}°C/1000 ft
+                </p>
+                <p className="text-blue-800 text-sm">
+                  <strong>Deviation:</strong> {climbSegment.actual_lapse_rate > climbSegment.standard_lapse_rate ? '+' : ''}{(climbSegment.actual_lapse_rate - climbSegment.standard_lapse_rate).toFixed(1)}°C/1000 ft
+                </p>
+              </div>
+              <div>
+                <p className="text-blue-800 text-sm font-medium">
+                  <strong>Atmospheric Condition:</strong>
+                </p>
+                <p className="text-blue-800 text-sm">
+                  {climbSegment.actual_lapse_rate < 0 ? 'Temperature Inversion (warmer aloft)' :
+                   climbSegment.actual_lapse_rate < 1.0 ? 'Weak Lapse Rate' :
+                   climbSegment.actual_lapse_rate < 1.5 ? 'Below Standard Lapse Rate' :
+                   climbSegment.actual_lapse_rate < 2.5 ? 'Near Standard Lapse Rate' :
+                   climbSegment.actual_lapse_rate < 3.5 ? 'Above Standard Lapse Rate' :
+                   'Steep Lapse Rate'}
+                </p>
+                {climbSegment.actual_lapse_rate < 0 && (
+                  <p className="text-blue-600 text-xs mt-2">
+                    ⚠️ Temperature inversion may result in better than expected performance
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Performance Impact Summary */}
       {(startPerformance.isa_deviation_c !== 0 || endPerformance.isa_deviation_c !== 0) && (

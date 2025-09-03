@@ -163,21 +163,23 @@ export class AircraftPerformance {
   }
 
   /**
-   * Get climb performance for a specific altitude segment
+   * Get climb performance for a specific altitude segment with custom temperature profile
    */
   getClimbSegmentPerformance(
     startAltitudeFt: number,
     endAltitudeFt: number,
     weightLbs: number,
-    startTemperatureC: number
+    startTemperatureC: number,
+    endTemperatureC?: number
   ): ClimbSegment | null {
     if (startAltitudeFt >= endAltitudeFt) {
       return null;
     }
 
-    // Calculate temperature at end altitude using standard lapse rate (2°C/1000ft)
-    const altitudeDiff1000ft = (endAltitudeFt - startAltitudeFt) / 1000;
-    const endTemperatureC = startTemperatureC - (2.0 * altitudeDiff1000ft);
+    // Use provided end temperature, or calculate using standard lapse rate if not provided
+    const finalEndTemperatureC = endTemperatureC !== undefined 
+      ? endTemperatureC 
+      : startTemperatureC - (2.0 * (endAltitudeFt - startAltitudeFt) / 1000);
 
     // Get performance at start altitude
     const startPerf = this.getPerformanceWithTemperature(startAltitudeFt, weightLbs, startTemperatureC);
@@ -185,8 +187,8 @@ export class AircraftPerformance {
       return null;
     }
 
-    // Get performance at end altitude with calculated temperature
-    const endPerf = this.getPerformanceWithTemperature(endAltitudeFt, weightLbs, endTemperatureC);
+    // Get performance at end altitude with actual temperature
+    const endPerf = this.getPerformanceWithTemperature(endAltitudeFt, weightLbs, finalEndTemperatureC);
     if (!endPerf) {
       return null;
     }
@@ -201,6 +203,11 @@ export class AircraftPerformance {
     // Time calculation using average ROC
     const climbTimeMin = avgRoc > 0 ? altitudeGain / avgRoc : Infinity;
 
+    // Calculate lapse rate information
+    const actualLapseRate = (startTemperatureC - finalEndTemperatureC) / (altitudeGain / 1000);
+    const standardLapseRate = 2.0;
+    const isStandardAtmosphere = Math.abs(actualLapseRate - standardLapseRate) < 0.5;
+
     return {
       start_altitude_ft: startAltitudeFt,
       end_altitude_ft: endAltitudeFt,
@@ -212,7 +219,11 @@ export class AircraftPerformance {
       end_ias_mph: endPerf.ias_mph,
       start_density_alt_ft: startPerf.density_altitude_ft,
       end_density_alt_ft: endPerf.density_altitude_ft,
-      temperature_c: startTemperatureC,
+      start_temperature_c: startTemperatureC,
+      end_temperature_c: finalEndTemperatureC,
+      actual_lapse_rate: Math.round(actualLapseRate * 10) / 10,
+      standard_lapse_rate: standardLapseRate,
+      is_standard_atmosphere: isStandardAtmosphere,
     };
   }
 }
