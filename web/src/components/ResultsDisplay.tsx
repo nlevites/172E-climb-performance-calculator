@@ -254,31 +254,7 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
         </div>
       )}
 
-      {/* Performance Impact Summary */}
-      {(startPerformance.isa_deviation_c !== 0 || endPerformance.isa_deviation_c !== 0) && (
-        <div className="card">
-          <div className="flex items-center mb-4">
-            <Thermometer className="h-5 w-5 text-orange-500 mr-2" />
-            <h4 className="font-bold text-gray-900">Temperature Impact</h4>
-          </div>
-          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-            <p className="text-orange-800 text-sm">
-              <strong>Performance Factor:</strong> {startPerformance.performance_factor} 
-              {startPerformance.performance_factor < 1 ? ' (Reduced)' : startPerformance.performance_factor > 1 ? ' (Enhanced)' : ' (Standard)'}
-            </p>
-            {startPerformance.roc_loss_fpm > 0 && (
-              <p className="text-orange-800 text-sm mt-1">
-                <strong>Performance Loss:</strong> -{startPerformance.roc_loss_fpm} fpm at start altitude due to high temperature
-              </p>
-            )}
-            {startPerformance.roc_loss_fpm < 0 && (
-              <p className="text-orange-800 text-sm mt-1">
-                <strong>Performance Gain:</strong> +{Math.abs(startPerformance.roc_loss_fpm)} fpm at start altitude due to cold temperature
-              </p>
-            )}
-          </div>
-        </div>
-      )}
+
     </div>
   );
 };
