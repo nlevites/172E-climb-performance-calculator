@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react';
 import { InputForm } from './components/InputForm';
 import { ResultsDisplay } from './components/ResultsDisplay';
-import { PerformanceChart } from './components/PerformanceChart';
 import { AircraftPerformance } from './lib/aircraftPerformance';
 import { ClimbSegment, PerformanceData } from './types/aircraft';
 import { Plane, Github, ExternalLink } from 'lucide-react';
@@ -208,10 +207,7 @@ function App() {
             />
           )}
 
-          {/* Performance Charts */}
-          {climbSegment && !error && (
-            <PerformanceChart weight={weight} temperature={startTemperature} />
-          )}
+
 
 
 
