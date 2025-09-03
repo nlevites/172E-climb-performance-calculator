@@ -233,6 +233,7 @@ function App() {
               <p>• Temperature effects calculated using density altitude (120 ft per °C deviation from ISA)</p>
               <p>• ISA conditions: 15°C at sea level, decreasing 2°C per 1000 ft</p>
               <p>• Fuel consumption and climb time calculated using average rate of climb</p>
+              <p>• <strong>Important:</strong> Initial fuel used for warm-up and take-off allowance (1 gal) is not included in fuel calculations (see Fig 5-4 for clarification)</p>
               <p>• Valid for normal category operations within weight and balance limits</p>
               <p>• Based on authentic 1964 Cessna 172E (N7772U) POH performance tables</p>
             </div>
