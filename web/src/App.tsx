@@ -156,56 +156,7 @@ function App() {
             <PerformanceChart weight={weight} temperature={temperature} />
           )}
 
-          {/* Example Scenarios */}
-          <div className="card">
-            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-              <ExternalLink className="h-5 w-5 mr-2" />
-              Example Scenarios
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <button
-                onClick={() => {
-                  setStartAltitude(0);
-                  setEndAltitude(10000);
-                  setWeight(1800);
-                  setTemperature(15);
-                }}
-                className="text-left p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <h4 className="font-semibold text-gray-900">Sea Level to 10,000 ft</h4>
-                <p className="text-sm text-gray-600 mt-1">Light weight, standard day</p>
-                <p className="text-xs text-gray-500 mt-2">1800 lbs, 15°C</p>
-              </button>
-              
-              <button
-                onClick={() => {
-                  setStartAltitude(2000);
-                  setEndAltitude(8000);
-                  setWeight(2200);
-                  setTemperature(25);
-                }}
-                className="text-left p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <h4 className="font-semibold text-gray-900">Regional Airport Departure</h4>
-                <p className="text-sm text-gray-600 mt-1">Hot day, near max weight</p>
-                <p className="text-xs text-gray-500 mt-2">2200 lbs, 25°C</p>
-              </button>
-              
-              <button
-                onClick={() => {
-                  setStartAltitude(5000);
-                  setEndAltitude(12000);
-                  setWeight(2000);
-                  setTemperature(5);
-                }}
-                className="text-left p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <h4 className="font-semibold text-gray-900">High Altitude Climb</h4>
-                <p className="text-sm text-gray-600 mt-1">Cold day, typical weight</p>
-                <p className="text-xs text-gray-500 mt-2">2000 lbs, 5°C</p>
-              </button>
-            </div>
-          </div>
+
 
           {/* POH Source Data */}
           <div className="card">
