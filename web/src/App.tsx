@@ -102,7 +102,7 @@ function App() {
             </div>
             <div className="hidden sm:flex items-center space-x-4">
               <a
-                href="https://github.com"
+                href="https://github.com/nlevites/172E-climb-performance-calculator"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
